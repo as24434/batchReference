@@ -40,3 +40,46 @@ public class BatchConfig {
                 .build();
     }
 }
+
+
+
+++++++++++++++++++++++++++
+
+
+@Configuration
+public class FileToJobIntegrationConfig {
+
+    @Bean
+    public IntegrationFlow fileReadingFlow() {
+        return IntegrationFlows
+            .from(Files.inboundAdapter(new File("input-directory"))
+                .patternFilter("*.txt"), e -> e.poller(Pollers.fixedDelay(1000)))
+            .channel("inputChannel")
+            .get();
+    }
+
+    @Transformer(inputChannel = "inputChannel", outputChannel = "jobRequestChannel")
+    public JobLaunchRequest toRequest(Message<File> message) {
+        File file = message.getPayload();
+        JobParametersBuilder jobParametersBuilder = new JobParametersBuilder();
+        jobParametersBuilder.addString("input.file.name", file.getAbsolutePath());
+        jobParametersBuilder.addLong("file.timestamp", file.lastModified());
+
+        return new JobLaunchRequest(myJob, jobParametersBuilder.toJobParameters());
+    }
+
+    @Bean
+    public IntegrationFlow jobLaunchingFlow(JobLaunchingGateway jobLaunchingGateway) {
+        return IntegrationFlows
+            .from("jobRequestChannel")
+            .handle(jobLaunchingGateway)
+            .get();
+    }
+
+    @MessagingGateway
+    public interface JobLaunchingGateway {
+        @Gateway(requestChannel = "jobRequestChannel")
+        void launch(JobLaunchRequest request);
+    }
+}
+
