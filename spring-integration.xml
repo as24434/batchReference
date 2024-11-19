@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/integration
+                           http://www.springframework.org/schema/integration/spring-integration.xsd">
+
+    <!-- Define channels -->
+    <bean id="inputChannel" class="org.springframework.integration.channel.DirectChannel"/>
+    <bean id="outputChannel" class="org.springframework.integration.channel.DirectChannel"/>
+    <bean id="errorChannel" class="org.springframework.integration.channel.DirectChannel"/>
+    <bean id="fallbackChannel" class="org.springframework.integration.channel.DirectChannel"/>
+
+    <!-- Define an error handler that logs errors -->
+    <bean id="errorLoggingHandler" class="org.springframework.integration.handler.LoggingHandler">
+        <property name="level" value="ERROR"/>
+        <property name="loggerName" value="IntegrationErrorLogger"/>
+    </bean>
+
+    <!-- Define the error handling flow -->
+    <int:channel id="errorChannel"/>
+    <int:flow id="errorHandlingFlow">
+        <int:transformer expression="payload.toString()"/>
+        <int:service-activator input-channel="errorChannel" ref="errorLoggingHandler"/>
+    </int:flow>
+
+    <!-- Define the main integration flow -->
+    <int:flow id="validFlow">
+        <!-- Read messages from the input channel -->
+        <int:channel id="inputChannel"/>
+        <!-- Handle the messages and add a simple transformation -->
+        <int:service-activator input-channel="inputChannel" output-channel="outputChannel" ref="messageHandler"/>
+        <!-- If no output is produced, send it to the fallback channel -->
+        <int:channel id="fallbackChannel"/>
+    </int:flow>
+
+    <!-- Define the message handler (for simple transformations) -->
+    <bean id="messageHandler" class="org.springframework.integration.handler.GenericHandler">
+        <property name="bean" ref="messageProcessor"/>
+    </bean>
+
+    <!-- Define a simple processor to handle the transformation -->
+    <bean id="messageProcessor" class="com.example.MessageProcessor"/>
+
+</beans>
