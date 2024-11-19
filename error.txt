@@ -1,6 +1,47 @@
 @Configuration
 public class IntegrationErrorHandlingConfig {
 
+
+@Configuration
+public class IntegrationConfig {
+
+    @Bean
+    public MessageChannel inputChannel() {
+        return MessageChannels.direct().get();
+    }
+
+    @Bean
+    public MessageChannel errorChannel() {
+        return MessageChannels.direct().get();
+    }
+
+    @Bean
+    public IntegrationFlow mainFlow() {
+        return IntegrationFlows.from("inputChannel")
+                .handle(message -> {
+                    throw new RuntimeException("Simulated exception");
+                })
+                .get();
+    }
+
+    @Bean
+    public IntegrationFlow errorHandlingFlow() {
+        return IntegrationFlows.from("errorChannel")
+                .handle(message -> System.err.println("Error: " + message.getPayload()))
+                .get();
+    }
+}
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
     @Bean
     public IntegrationFlow batchIntegrationFlow() {
         return IntegrationFlows.from("inputChannel")
