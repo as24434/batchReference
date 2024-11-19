@@ -33,4 +33,24 @@ public class IntegrationErrorHandlingConfig {
         handler.setLoggerName("BatchErrorLogger");
         return handler;
     }
+
+@Bean(name = "errorChannel")
+public MessageChannel errorChannel() {
+    return new DirectChannel();
+}
+
+@Bean
+public LoggingHandler errorLogger() {
+    LoggingHandler loggingHandler = new LoggingHandler(LoggingHandler.Level.ERROR);
+    loggingHandler.setLoggerName("IntegrationErrorLogger");
+    return loggingHandler;
+}
+
+@Bean
+public IntegrationFlow errorHandlingFlow() {
+    return IntegrationFlows.from("errorChannel")
+            .handle(errorLogger())
+            .get();
+}
+
 }
