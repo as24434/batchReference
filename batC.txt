@@ -1,0 +1,60 @@
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.core.Step;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.beans.factory.annotation.Autowired;
+
+@Configuration
+@EnableBatchProcessing
+public class BatchConfig {
+
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+
+    // Inject JobBuilderFactory and StepBuilderFactory using constructor
+    public BatchConfig(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory) {
+        this.jobBuilderFactory = jobBuilderFactory;
+        this.stepBuilderFactory = stepBuilderFactory;
+    }
+
+    @Bean
+    public Job exampleJob() {
+        return jobBuilderFactory.get("exampleJob")
+                .incrementer(new RunIdIncrementer())  // Automatically increments job execution ID
+                .start(exampleStep())  // Start with this step
+                .build();
+    }
+
+    @Bean
+    public Step exampleStep() {
+        return stepBuilderFactory.get("exampleStep")
+                .tasklet((contribution, chunkContext) -> {
+                    System.out.println("Executing tasklet...");
+                    return null;  // Indicating successful execution
+                })
+                .build();
+    }
+
+    // JobLauncher is injected to run the job programmatically
+    @Autowired
+    private JobLauncher jobLauncher;
+
+    @Autowired
+    private Job exampleJob;
+
+    // CommandLineRunner to trigger the job execution
+    @Bean
+    public CommandLineRunner runJob() {
+        return args -> {
+            JobExecution jobExecution = jobLauncher.run(exampleJob, new JobParameters());
+            System.out.println("Job execution status: " + jobExecution.getStatus());
+        };
+    }
+}
