@@ -1,0 +1,36 @@
+@Configuration
+public class IntegrationErrorHandlingConfig {
+
+    @Bean
+    public IntegrationFlow batchIntegrationFlow() {
+        return IntegrationFlows.from("inputChannel")
+                .handle((payload, headers) -> {
+                    // Simulate business logic error
+                    throw new RuntimeException("Error in processing");
+                })
+                .channel("outputChannel")
+                .get();
+    }
+
+    @Bean(name = "inputChannel")
+    public MessageChannel inputChannel() {
+        return new DirectChannel();
+    }
+
+    @Bean(name = "outputChannel")
+    public MessageChannel outputChannel() {
+        return new DirectChannel();
+    }
+
+    @Bean
+    public MessageChannel errorChannel() {
+        return new DirectChannel();
+    }
+
+    @Bean
+    public LoggingHandler errorHandler() {
+        LoggingHandler handler = new LoggingHandler("ERROR");
+        handler.setLoggerName("BatchErrorLogger");
+        return handler;
+    }
+}
