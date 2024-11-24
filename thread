@@ -1,20 +1,27 @@
-import org.springframework.stereotype.Component;
+@Bean
+public Tasklet retryableTasklet() {
+    return new RetryableTasklet();
+}
 
-@Component
-public class DelayStep extends StepExecutionListenerSupport {
+public class RetryableTasklet implements Tasklet {
+    private static final int MAX_ATTEMPTS = 3;
+
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-        LOGGER.info("Delay Step Started");
-
-        try {
-            TimeUnit.SECONDS.sleep(5); // Delay for 5 seconds
-        } catch (InterruptedException e) {
-            LOGGER.error("Step interrupted", e);
-            Thread.currentThread().interrupt(); // Preserve the interrupt status
-            throw e; // Propagate the exception
+        int attempt = 0;
+        while (attempt < MAX_ATTEMPTS) {
+            try {
+                // Perform task here
+                return RepeatStatus.FINISHED;
+            } catch (InterruptedException ex) {
+                attempt++;
+                if (attempt >= MAX_ATTEMPTS) {
+                    throw new RuntimeException("Task failed after " + MAX_ATTEMPTS + " attempts", ex);
+                }
+                // Retry logic
+                Thread.sleep(1000);  // Delay before retrying
+            }
         }
-
-        LOGGER.info("Delay Step End");
         return RepeatStatus.FINISHED;
     }
 }
