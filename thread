@@ -1,17 +1,20 @@
-@Override
-public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-    LOGGER.info("Delay Step Started with initialDelay: {}", initialDelay);
+import org.springframework.stereotype.Component;
 
-    long start = System.currentTimeMillis();
-    while (System.currentTimeMillis() - start < TimeUnit.SECONDS.toMillis(5)) {
-        if (Thread.currentThread().isInterrupted()) {
-            LOGGER.warn("Thread was interrupted during delay.");
-            Thread.currentThread().interrupt();
-            return RepeatStatus.FINISHED;
+@Component
+public class DelayStep extends StepExecutionListenerSupport {
+    @Override
+    public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+        LOGGER.info("Delay Step Started");
+
+        try {
+            TimeUnit.SECONDS.sleep(5); // Delay for 5 seconds
+        } catch (InterruptedException e) {
+            LOGGER.error("Step interrupted", e);
+            Thread.currentThread().interrupt(); // Preserve the interrupt status
+            throw e; // Propagate the exception
         }
-        Thread.sleep(500); // Sleep in smaller intervals
-    }
 
-    LOGGER.info("Delay Step Ended");
-    return RepeatStatus.FINISHED;
+        LOGGER.info("Delay Step End");
+        return RepeatStatus.FINISHED;
+    }
 }
