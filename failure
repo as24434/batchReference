@@ -1,0 +1,27 @@
+import org.springframework.context.ApplicationContext;
+import org.springframework.integration.channel.AbstractMessageChannel;
+import org.springframework.integration.handler.ServiceActivator;
+import org.springframework.integration.dsl.MessageChannels;
+
+import java.util.Map;
+
+public class FailureHandler {
+
+    private final ApplicationContext context;
+
+    public FailureHandler(ApplicationContext context) {
+        this.context = context;
+    }
+
+    // This method can be invoked on a failure
+    public void handleFailure() {
+        // Find all channels in the context
+        Map<String, AbstractMessageChannel> channels = context.getBeansOfType(AbstractMessageChannel.class);
+
+        // Loop through each channel and stop it
+        channels.forEach((name, channel) -> {
+            System.out.println("Shutting down channel: " + name);
+            channel.stop(); // Stop the channel
+        });
+    }
+}
