@@ -1,0 +1,13 @@
+@Bean
+    public Job processJob() {
+        return new JobBuilderFactory(new JobRepositoryFactoryBean())
+                .get("processJob")
+                .start(new StepBuilderFactory(new JobRepositoryFactoryBean(), new ResourcelessTransactionManager())
+                        .get("step")
+                        .tasklet((contribution, chunkContext) -> {
+                            System.out.println("Job executed");
+                            return RepeatStatus.FINISHED;
+                        })
+                        .build())
+                .build();
+    }
