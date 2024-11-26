@@ -1,8 +1,9 @@
-import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.*;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.annotation.After;
+import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.beans.factory.annotation.Value;
+import org.aspectj.lang.annotation.Around;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,67 +14,37 @@ public class LoggerAspect {
 
     private static final Logger logger = LoggerFactory.getLogger(LoggerAspect.class);
 
-    // Dynamically fetch the base package from application properties
-    @Value("${base.package:com.example}")
-    private String basePackage;
-
-    /**
-     * Pointcut for all methods in all packages.
-     * We filter using logic in the advice methods.
-     */
-    @Pointcut("execution(* *(..))")
-    public void allMethodsPointcut() {
-        // Pointcut definition
-    }
-
-    @Before("allMethodsPointcut()")
+    // Pointcut for all methods in a specific package
+    @Before("execution(* com.example.package..*(..))")
     public void logClassAndMethodStart(JoinPoint joinPoint) {
-        if (isInBasePackage(joinPoint)) {
-            logger.info("Entering Class: {} | Method: {}",
-                joinPoint.getTarget().getClass().getName(),
-                joinPoint.getSignature().getName());
-        }
+        logger.info("Entering Class: {} | Method: {}", 
+            joinPoint.getTarget().getClass().getName(), 
+            joinPoint.getSignature().getName());
     }
 
-    @After("allMethodsPointcut()")
+    @After("execution(* com.example.package..*(..))")
     public void logMethodEnd(JoinPoint joinPoint) {
-        if (isInBasePackage(joinPoint)) {
-            logger.info("Exiting Method: {}", joinPoint.getSignature().getName());
-        }
+        logger.info("Exiting Method: {}", joinPoint.getSignature().getName());
     }
 
-    @AfterThrowing(value = "allMethodsPointcut()", throwing = "ex")
+    @AfterThrowing(value = "execution(* com.example.package..*(..))", throwing = "ex")
     public void logException(JoinPoint joinPoint, Throwable ex) {
-        if (isInBasePackage(joinPoint)) {
-            logger.error("Exception in Method: {} | Message: {}",
-                joinPoint.getSignature().getName(),
-                ex.getMessage(), ex);
-        }
+        logger.error("Exception in Method: {} | Message: {}", 
+            joinPoint.getSignature().getName(), 
+            ex.getMessage(), ex);
     }
 
-    @Around("allMethodsPointcut()")
+    @Around("execution(* com.example.package..*(..))")
     public Object logMethodExecution(ProceedingJoinPoint joinPoint) throws Throwable {
-        if (isInBasePackage(joinPoint)) {
-            long startTime = System.currentTimeMillis();
-            try {
-                Object result = joinPoint.proceed();
-                long timeTaken = System.currentTimeMillis() - startTime;
-                logger.info("Method {} executed in {} ms", joinPoint.getSignature().getName(), timeTaken);
-                return result;
-            } catch (Throwable ex) {
-                logger.error("Error in method: {}", joinPoint.getSignature().getName(), ex);
-                throw ex;
-            }
-        } else {
-            return joinPoint.proceed(); // Skip logging for non-matching methods
+        long startTime = System.currentTimeMillis();
+        try {
+            Object result = joinPoint.proceed();
+            long timeTaken = System.currentTimeMillis() - startTime;
+            logger.info("Method {} executed in {} ms", joinPoint.getSignature().getName(), timeTaken);
+            return result;
+        } catch (Throwable ex) {
+            logger.error("Error in method: {}", joinPoint.getSignature().getName(), ex);
+            throw ex;
         }
-    }
-
-    /**
-     * Checks if the join point belongs to the configured base package.
-     */
-    private boolean isInBasePackage(JoinPoint joinPoint) {
-        String className = joinPoint.getTarget().getClass().getPackageName();
-        return className.startsWith(basePackage);
     }
 }
