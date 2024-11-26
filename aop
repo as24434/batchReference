@@ -1,0 +1,59 @@
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.*;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@Aspect
+@Component
+public class LoggerAspect {
+
+    private static final Logger logger = LoggerFactory.getLogger(LoggerAspect.class);
+
+    // Dynamically fetch the base package from application properties
+    @Value("${base.package:com.example}")
+    private String basePackage;
+
+    /**
+     * Pointcut dynamically derived from the base package.
+     */
+    @Pointcut("execution(* ${base.package}..*(..))")
+    public void dynamicPackagePointcut() {
+        // Pointcut definition
+    }
+
+    @Before("dynamicPackagePointcut()")
+    public void logClassAndMethodStart(JoinPoint joinPoint) {
+        logger.info("Entering Class: {} | Method: {}",
+            joinPoint.getTarget().getClass().getName(),
+            joinPoint.getSignature().getName());
+    }
+
+    @After("dynamicPackagePointcut()")
+    public void logMethodEnd(JoinPoint joinPoint) {
+        logger.info("Exiting Method: {}", joinPoint.getSignature().getName());
+    }
+
+    @AfterThrowing(value = "dynamicPackagePointcut()", throwing = "ex")
+    public void logException(JoinPoint joinPoint, Throwable ex) {
+        logger.error("Exception in Method: {} | Message: {}",
+            joinPoint.getSignature().getName(),
+            ex.getMessage(), ex);
+    }
+
+    @Around("dynamicPackagePointcut()")
+    public Object logMethodExecution(ProceedingJoinPoint joinPoint) throws Throwable {
+        long startTime = System.currentTimeMillis();
+        try {
+            Object result = joinPoint.proceed();
+            long timeTaken = System.currentTimeMillis() - startTime;
+            logger.info("Method {} executed in {} ms", joinPoint.getSignature().getName(), timeTaken);
+            return result;
+        } catch (Throwable ex) {
+            logger.error("Error in method: {}", joinPoint.getSignature().getName(), ex);
+            throw ex;
+        }
+    }
+}
