@@ -1,50 +1,30 @@
-import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Before;
-import org.aspectj.lang.annotation.After;
-import org.aspectj.lang.annotation.AfterThrowing;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.springframework.stereotype.Component;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.lang.reflect.*;
 
-@Aspect
-@Component
-public class LoggerAspect {
+public class MethodLoggingHandler implements InvocationHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(LoggerAspect.class);
+    private final Object target;
 
-    // Pointcut for all methods in a specific package
-    @Before("execution(* com.example.package..*(..))")
-    public void logClassAndMethodStart(JoinPoint joinPoint) {
-        logger.info("Entering Class: {} | Method: {}", 
-            joinPoint.getTarget().getClass().getName(), 
-            joinPoint.getSignature().getName());
+    public MethodLoggingHandler(Object target) {
+        this.target = target;
     }
 
-    @After("execution(* com.example.package..*(..))")
-    public void logMethodEnd(JoinPoint joinPoint) {
-        logger.info("Exiting Method: {}", joinPoint.getSignature().getName());
-    }
-
-    @AfterThrowing(value = "execution(* com.example.package..*(..))", throwing = "ex")
-    public void logException(JoinPoint joinPoint, Throwable ex) {
-        logger.error("Exception in Method: {} | Message: {}", 
-            joinPoint.getSignature().getName(), 
-            ex.getMessage(), ex);
-    }
-
-    @Around("execution(* com.example.package..*(..))")
-    public Object logMethodExecution(ProceedingJoinPoint joinPoint) throws Throwable {
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         long startTime = System.currentTimeMillis();
         try {
-            Object result = joinPoint.proceed();
+            System.out.println("Entering Method: " + method.getName());
+            Object result = method.invoke(target, args);  // Invoke the method on the actual object
             long timeTaken = System.currentTimeMillis() - startTime;
-            logger.info("Method {} executed in {} ms", joinPoint.getSignature().getName(), timeTaken);
+            System.out.println("Exiting Method: " + method.getName() + " | Execution Time: " + timeTaken + " ms");
             return result;
-        } catch (Throwable ex) {
-            logger.error("Error in method: {}", joinPoint.getSignature().getName(), ex);
-            throw ex;
+        } catch (Exception e) {
+            System.err.println("Exception in Method: " + method.getName() + " | " + e.getMessage());
+            throw e;
         }
+    }
+
+    public static Object createProxy(Object target) {
+        return Proxy.newProxyInstance(target.getClass().getClassLoader(),
+                target.getClass().getInterfaces(), new MethodLoggingHandler(target));
     }
 }
