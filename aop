@@ -6,6 +6,8 @@ import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// base.package=com.yourcompany.projectname
+
 @Aspect
 @Component
 public class LoggerAspect {
