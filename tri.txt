@@ -1,0 +1,23 @@
+@Bean
+public IntegrationFlow customTriggerFlow() {
+    return IntegrationFlows
+            .from("inputChannel", c -> c.poller(poller -> poller.trigger(customTrigger())))
+            .transform(this::processMessage)
+            .channel("outputChannel")
+            .get();
+}
+
+@Bean
+public Trigger customTrigger() {
+    return new Trigger() {
+        @Override
+        public Date nextExecutionTime(TriggerContext triggerContext) {
+            // Define custom logic for the next execution time
+            Calendar nextExecutionTime = new GregorianCalendar();
+            Date lastExecutionTime = triggerContext.lastCompletionTime();
+            nextExecutionTime.setTime(lastExecutionTime != null ? lastExecutionTime : new Date());
+            nextExecutionTime.add(Calendar.SECOND, 10); // Trigger every 10 seconds
+            return nextExecutionTime.getTime();
+        }
+    };
+}
