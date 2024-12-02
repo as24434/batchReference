@@ -1,0 +1,8 @@
+@Bean
+public TaskScheduler taskScheduler() {
+    ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+    scheduler.setPoolSize(10); // Number of threads
+    scheduler.setWaitForTasksToCompleteOnShutdown(true); // Wait for running tasks to finish
+    scheduler.setAwaitTerminationSeconds(43200); // Allow 12 hours for shutdown
+    return scheduler;
+}
