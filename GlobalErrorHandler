@@ -1,0 +1,38 @@
+@ServiceActivator(inputChannel = "errorChannel")
+public void handleError(Message<?> message) {
+    System.err.println("Error Message: " + message);
+}
+
+@Bean
+public MessageChannel customErrorChannel() {
+    return new DirectChannel();
+}
+
+@ServiceActivator(inputChannel = "customErrorChannel")
+public void handleCustomError(Message<?> message) {
+    System.err.println("Custom Error Message: " + message);
+}
+
+
+@Bean
+public IntegrationFlow myFlow() {
+    return IntegrationFlows.from("inputChannel")
+            .handle("someHandler", "process")
+            .get();
+}
+
+@Bean
+public ErrorHandler errorHandler() {
+    return new MessagePublishingErrorHandler(customErrorChannel());
+}
+
+
+logging:
+  level:
+    org.springframework.integration: DEBUG
+
+
+@Bean
+public GlobalErrorHandler globalErrorHandler() {
+    return new GlobalErrorHandler();
+}
