@@ -4,3 +4,30 @@ public IntegrationFlow debugSubscriber() {
             .handle(message -> System.out.println("Subscriber received: " + message))
             .get();
 }
+
+
+@Bean
+public IntegrationFlow myFlow() {
+    return IntegrationFlows.from("inputChannel")
+            .<String, String>transform(String::toUpperCase,
+                e -> e.advice(expression -> expression.errorChannel("myFlow.errorChannel")))
+            .channel("outputChannel")
+            .get();
+}
+
+
+
+@Bean
+public IntegrationFlow myFlowErrorHandler() {
+    return IntegrationFlows.from("myFlow.errorChannel")
+            .handle(message -> {
+                System.err.println("Error in myFlow: " + message.getPayload());
+                System.err.println("Headers: " + message.getHeaders());
+            })
+            .get();
+}
+
+
+
+logging.level.org.springframework.integration=DEBUG
+
