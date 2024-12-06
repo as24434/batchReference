@@ -1,0 +1,35 @@
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.PropertySource;
+import org.springframework.core.env.StandardEnvironment;
+import org.springframework.stereotype.Component;
+
+@Component
+public class SpringEnvJobListener implements JobExecutionListener {
+
+    private final Environment environment;
+
+    public SpringEnvJobListener(Environment environment) {
+        this.environment = environment;
+    }
+
+    @Override
+    public void beforeJob(JobExecution jobExecution) {
+        System.out.println("Spring Environment Properties:");
+
+        // Access all property sources and print their contents
+        if (environment instanceof StandardEnvironment standardEnvironment) {
+            for (PropertySource<?> propertySource : standardEnvironment.getPropertySources()) {
+                if (propertySource.getSource() instanceof java.util.Map<?, ?> sourceMap) {
+                    sourceMap.forEach((key, value) -> System.out.println(key + " = " + value));
+                }
+            }
+        }
+    }
+
+    @Override
+    public void afterJob(JobExecution jobExecution) {
+        System.out.println("Job Completed.");
+    }
+}
